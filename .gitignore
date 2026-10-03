@@ -1,0 +1,15 @@
+/build/
+/sdkconfig
+/sdkconfig.old
+/managed_components/
+/build-*/
+**/__pycache__/
+*.pyc
+/node_modules/
+/tests/node_modules/
+/zigbee2mqtt/node_modules/
+/.agents/
+/.codex/
+/.aws/
+/.env
+/.env.*

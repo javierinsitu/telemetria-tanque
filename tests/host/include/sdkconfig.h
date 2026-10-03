@@ -1,0 +1,2 @@
+#pragma once
+#define CONFIG_TANK_ACQUISITION_MS 1000

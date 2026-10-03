@@ -1,0 +1,13 @@
+menu "Telemetria hidraulica"
+    config TANK_SELF_TEST
+        bool "Ejecutar pruebas de calculo al arrancar"
+        default n
+    config TANK_ADC_ADDRESS
+        hex "Direccion I2C ADS1115 (ADDR a GND: 0x48)"
+        range 0x48 0x4b
+        default 0x48
+    config TANK_ACQUISITION_MS
+        int "Intervalo de adquisicion (ms)"
+        range 100 10000
+        default 1000
+endmenu
