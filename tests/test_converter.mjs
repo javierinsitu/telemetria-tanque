@@ -16,6 +16,14 @@ const device={
 await ready.configure(device,{});
 assert.equal(events.filter(([kind])=>kind==='report').length,8);
 assert.equal(definition.exposes.length,23);
+for (const name of ['level_m','level_percent','flow_l_min','volume_l','sensor_current_ma','adc_voltage_v']) {
+    const payload={unique_id:`0xacebe6fffe2c8fd0_${name}_zigbee2mqtt`};
+    definition.meta.overrideHaDiscoveryPayload(payload);
+    assert.equal(payload.state_class,name==='volume_l'?'total_increasing':'measurement');
+}
+const diagnostic={unique_id:'0xacebe6fffe2c8fd0_flow_state_zigbee2mqtt'};
+definition.meta.overrideHaDiscoveryPayload(diagnostic);
+assert.equal(diagnostic.state_class,undefined);
 for(const [index,name] of ['level_m','level_percent','flow_l_min','volume_l','sensor_current_ma','adc_voltage_v'].entries()) {
     assert.deepEqual(definition.fromZigbee[0].convert({}, {endpoint:{ID:index+10},data:{presentValue:2.5}}),{[name]:2.5});
 }

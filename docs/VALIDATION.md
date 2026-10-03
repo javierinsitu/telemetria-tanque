@@ -61,8 +61,8 @@ verificó la versión Zigbee2MQTT de ese equipo. Instrucciones de instalación l
 | Alturas patrón y calibración HY-5000 | Pendiente |
 | Divisor GPIO4 y generador de pulsos/overflow | Pendiente |
 | Calibración YF-B6 por recipiente y cronómetro | Pendiente |
-| Instalar conversor en Zigbee2MQTT real | Pendiente |
-| Unión, Read Attributes, reporting, ajustes remotos y HA | Pendiente |
+| Instalar conversor en Zigbee2MQTT real | OK, 2026-10-03; ver actualización remota debajo |
+| Unión, Read Attributes, reporting, ajustes remotos y HA | Recepción, lecturas, reporting y registro HA OK; escrituras y aceptación física pendientes |
 | Reconexión de red tras reinicio | Pendiente |
 | Reset voluntario persistente y total no cero tras cortes | Pendiente |
 | Ensayo prolongado 24–72 h y tráfico MQTT 10–15 min | Pendiente |
@@ -101,3 +101,42 @@ La sesión antes de habilitar acceso completo no podía abrir dispositivos USB.
   `unido=1`: se restauró el estado de red guardado. La medición ADC se recuperó
   tras el timeout inicial y continuó. Esto no sustituye una confirmación APS/MQTT
   ni verifica que el coordinador ya tenga el reporting de 30 s.
+
+## Actualización remota del conversor — 2026-10-03
+
+- Acceso SSH autenticado a Home Assistant 192.168.0.150 con Terminal & SSH.
+  Versiones reales obtenidas de `bridge/info`: Zigbee2MQTT 2.14.2,
+  zigbee-herdsman-converters 26.115.1 y zigbee-herdsman 10.10.0.
+- El dispositivo `Esp32-telemetria-tanque` (IEEE `0xacebe6fffe2c8fd0`)
+  estaba entrevistado, con identidad MILANGAS / ESP32C6_HYDRAULIC_1,
+  definición genérica y reporting analógico previo de mínimo 0/máximo 65000 s.
+- Instalación por la API MQTT oficial `bridge/request/converter/save`:
+  respuesta `status=ok`, definición `source=external` y checksum del archivo
+  remoto idéntico al local. Ruta:
+  `/config/zigbee2mqtt/external_converters/telemetria_tanque.mjs`.
+- Copias previas de configuration.yaml, database.db y state.json en
+  `/config/zigbee2mqtt/codex-backup-tanque-20261003-095823`.
+  Copia adicional con la primera versión instalada en
+  `/config/zigbee2mqtt/codex-backup-tanque-20261003-100133`.
+  Los backups permanecen en el servidor; no se incorporan al repositorio.
+- Reconfigure mediante `bridge/request/device/configure`: `status=ok`.
+  `bridge/devices` confirma ocho bindings y ocho reporting de mínimo 30 s,
+  máximo 600 s y los deltas del conversor. Lecturas de las seis magnitudes,
+  los dos estados y los 14 parámetros recibidas por MQTT; `publication_s=30`,
+  `level_state=ok`, `flow_enabled=0` y `flow_state=disabled`.
+- La verificación real de discovery detectó que `expose.homeassistant.state_class`
+  era ignorado por Z2M. Se corrigió usando el hook oficial
+  `meta.overrideHaDiscoveryPayload`, se recargó y reinició sólo Zigbee2MQTT.
+  Discovery MQTT comprobado: cinco magnitudes `measurement`, volumen
+  `total_increasing`, unidades m / % / L/min / L / mA / V y dos estados.
+- El registro `core.entity_registry` contiene las ocho entidades esperadas,
+  habilitadas. No se verificó su estado actual por REST: el token del contenedor
+  SSH recibe HTTP 401 en el proxy Core; recepción MQTT y discovery sí comprobados.
+- `node --check` y pruebas del conversor pasan con ZHC 26.115.1, incluidos
+  el hook de discovery, ocho bindings, configuración y decodificación.
+  Node local 26.9.0 queda fuera del rango declarado por estos paquetes (warning
+  npm); la carga y ejecución reales en Zigbee2MQTT también fueron comprobadas.
+- No se flasheó ni borró NVS, ni se habilitó caudal o reinició volumen.
+  Pendientes: ensayo de tráfico 10–15 min/heartbeat, escrituras remotas,
+  fallas físicas y funcionamiento prolongado. Varias publicaciones MQTT por
+  ciclo son esperables: reporting estándar es por atributo, no un paquete único.

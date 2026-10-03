@@ -97,12 +97,20 @@ export default {
     fingerprint: [{modelID: 'ESP32C6_HYDRAULIC_1', manufacturerName: 'MILANGAS'}],
     model: 'ESP32C6_HYDRAULIC_1', vendor: 'MILANGAS',
     description: 'Router ESP32-C6: nivel HY-5000/ADS1115 y caudal YF-B6',
+    meta: {
+        // Z2M 2.14.x does not accept state_class in expose.homeassistant.
+        // Apply statistical semantics to the generated MQTT discovery payload.
+        overrideHaDiscoveryPayload: (payload) => {
+            const measurement = measurements.find(([name]) =>
+                payload.unique_id?.endsWith(`_${name}_zigbee2mqtt`));
+            if (measurement) payload.state_class = measurement[0] === 'volume_l' ? 'total_increasing' : 'measurement';
+        },
+    },
     extend: [deviceAddCustomCluster('hydraulicConfig', cluster)],
     fromZigbee: [analog, states, configFrom], toZigbee: [configTo, measurementsTo],
     exposes: [
         ...measurements.map(([name, unit]) => e.numeric(name, ea.STATE_GET).withUnit(unit)
-            .withDescription(name.replaceAll('_', ' '))
-            .withHomeAssistant({state_class: name === 'volume_l' ? 'total_increasing' : 'measurement'})),
+            .withDescription(name.replaceAll('_', ' '))),
         e.enum('level_state', ea.STATE_GET, [...levelStates, 'unknown']).withCategory('diagnostic'),
         e.enum('flow_state', ea.STATE_GET, [...flowStates, 'unknown']).withCategory('diagnostic'),
         ...parameters.map(([name, id, min, max, unit]) => {

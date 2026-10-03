@@ -32,14 +32,16 @@ Los resultados comprobados están en [VALIDATION.md](docs/VALIDATION.md).
 
 ## Prioridad 1 — validar Zigbee2MQTT y Home Assistant
 
-- [ ] Confirmar la versión instalada de Zigbee2MQTT y ZHC y cargar el conversor
-  actualizado. Validar sintaxis/carga allí, además del test con ZHC 26.108.1.
-- [ ] Confirmar interview completo e identidad MILANGAS / ESP32C6_HYDRAULIC_1.
-  `unido=1` observado en firmware confirma estado SDK, no recepción MQTT.
-- [ ] Ejecutar Reconfigure con el conversor de 0.2.1 y verificar ocho bindings,
+- [x] Confirmar la versión instalada de Zigbee2MQTT y ZHC y cargar el conversor
+  actualizado: Zigbee2MQTT 2.14.2 / ZHC 26.115.1, carga real y test local OK.
+- [x] Confirmar interview completo e identidad MILANGAS / ESP32C6_HYDRAULIC_1.
+  Verificados en el coordinador y recepción MQTT real el 2026-10-03.
+- [x] Ejecutar Reconfigure con el conversor de 0.2.1 y verificar ocho bindings,
   Configure Reporting y Read Attributes, incluidos tipos y unidades estándar.
 - [ ] Comprobar seis entidades numéricas y dos estados en Home Assistant, con
   unidades, tratamiento de NaN/null y semántica del acumulado.
+  Registro HA y discovery MQTT de las ocho entidades verificados; clases
+  estadísticas corregidas. Pendiente aceptación visual y fallas físicas.
 - [ ] Observar 10–15 min de tráfico: mínimo 30 s por atributo, umbrales y
   heartbeat de 600 s, sin reportes manuales duplicados ni publicaciones idénticas
   repetidas. Registrar atributos y tramas por separado.

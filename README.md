@@ -5,9 +5,10 @@ Sin Arduino ni ESPHome. Versión de protocolo/firmware **0.2.1**.
 
 Código integrado, compilado y flasheado en el ESP32-C6 conectado. Se comprobaron
 arranque, lecturas ADC, pruebas de cálculo y actualización de atributos ZCL.
-El SDK también restauró el estado de red tras un reinicio (`unido=1`). Falta
-confirmar reporting y entidades en Zigbee2MQTT/Home Assistant, exactitud hidráulica
-y funcionamiento prolongado. Ver [VALIDATION.md](docs/VALIDATION.md) y la lista
+El SDK también restauró el estado de red tras un reinicio (`unido=1`). Se instaló
+el conversor en Zigbee2MQTT 2.14.2, se aplicó reporting de 30–600 s y se verificaron
+recepción MQTT y las ocho entidades en el registro de Home Assistant. Faltan
+exactitud hidráulica y funcionamiento prolongado. Ver [VALIDATION.md](docs/VALIDATION.md) y la lista
 priorizada de [TODOs](TODO.md).
 
 ## Características
