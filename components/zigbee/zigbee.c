@@ -25,14 +25,16 @@ static StaticQueue_t queue_buffer;
 static uint8_t queue_storage[sizeof(tank_sample_t)];
 static const uint8_t manufacturer[] = {8,'M','I','L','A','N','G','A','S'};
 static const uint8_t model[] = {19,'E','S','P','3','2','C','6','_','H','Y','D','R','A','U','L','I','C','_','1'};
-static const uint8_t build[] = {5,'0','.','2','.','1'};
-static const uint16_t units[6] = {31,98,88,82,2,5};
-static const uint8_t descriptions[6][32] = {
+static const uint8_t build[] = {5,'0','.','3','.','0'};
+static const uint8_t measurement_endpoints[TANK_MEASUREMENT_COUNT] = {10,11,12,13,14,15,18};
+static const uint16_t units[TANK_MEASUREMENT_COUNT] = {31,98,88,82,2,5,82};
+static const uint8_t descriptions[TANK_MEASUREMENT_COUNT][32] = {
     {7,'N','i','v','e','l',' ','m'}, {7,'N','i','v','e','l',' ','%'},
     {12,'C','a','u','d','a','l',' ','L','/','m','i','n'},
     {9,'V','o','l','u','m','e','n',' ','L'},
     {12,'C','o','r','r','i','e','n','t','e',' ','m','A'},
     {9,'V','o','l','t','a','j','e',' ','V'},
+    {12,'A','l','m','a','c','e','n','a','d','o',' ','L'},
 };
 
 static esp_err_t from_ezb(ezb_err_t e) { return esp_zigbee_err_to_esp(e); }
@@ -75,7 +77,7 @@ static esp_err_t register_model(void)
 {
     ezb_af_device_desc_t dev = ezb_af_create_device_desc();
     if (dev == EZB_INVALID_AF_DEVICE_DESC) return ESP_ERR_NO_MEM;
-    for (unsigned endpoint = 0; endpoint < 9; ++endpoint) {
+    for (unsigned endpoint = 0; endpoint < 10; ++endpoint) {
         const ezb_af_ep_config_t cfg = {.ep_id = endpoint ? endpoint + 9 : 1,
             .app_profile_id = EZB_AF_HA_PROFILE_ID, .app_device_id = EZB_ZHA_SIMPLE_SENSOR_DEVICE_ID,
             .app_device_version = 1};
@@ -112,8 +114,8 @@ static esp_err_t register_model(void)
             ESP_RETURN_ON_ERROR(from_ezb(ezb_zcl_custom_cluster_desc_add_attr(custom, 0xfffd,
                 EZB_ZCL_ATTR_TYPE_UINT16, EZB_ZCL_ATTR_ACCESS_READ, &revision)), TAG, "revision");
             ESP_RETURN_ON_ERROR(add_cluster(ep, custom), TAG, "custom");
-        } else if (endpoint <= 6) {
-            const unsigned index = endpoint - 1;
+        } else if (endpoint <= 6 || endpoint == 9) {
+            const unsigned index = endpoint == 9 ? 6 : endpoint - 1;
             const ezb_zcl_analog_input_cluster_server_config_t analog_cfg = {
                 .present_value = NAN, .status_flags = 2};
             ezb_zcl_cluster_desc_t analog = ezb_zcl_analog_input_create_cluster_desc(&analog_cfg, EZB_ZCL_CLUSTER_SERVER);
@@ -265,11 +267,11 @@ static void publisher_task(void *arg)
          * reporting is the sole RF producer after the coordinator configures it. */
         bool ok = true;
         bool stale = now - sample.timestamp_us > 3 * c.value[CFG_ACQUIRE_MS] * 1000;
-        for (unsigned i = 0; i < 6; ++i) {
+        for (unsigned i = 0; i < TANK_MEASUREMENT_COUNT; ++i) {
             float value = stale ? NAN : sample.value[i];
             uint8_t flags = isnan(value) ? 2 : 0;
-            ok &= set_attr(i + 10, EZB_ZCL_CLUSTER_ID_ANALOG_INPUT, 0x55, &value);
-            ok &= set_attr(i + 10, EZB_ZCL_CLUSTER_ID_ANALOG_INPUT, 0x6f, &flags);
+            ok &= set_attr(measurement_endpoints[i], EZB_ZCL_CLUSTER_ID_ANALOG_INPUT, 0x55, &value);
+            ok &= set_attr(measurement_endpoints[i], EZB_ZCL_CLUSTER_ID_ANALOG_INPUT, 0x6f, &flags);
         }
         uint16_t level_status = stale ? 2 : sample.level_state;
         uint16_t flow_status = stale ? 3 : sample.flow_state;

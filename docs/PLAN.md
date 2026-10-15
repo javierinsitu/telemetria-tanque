@@ -16,6 +16,11 @@ aceptación física. No se afirma haber cumplido ensayos que requieren instrumen
 
 Arquitectura/protocolo en ARCHITECTURE.md; registro de pruebas en VALIDATION.md;
 backlog priorizado con criterios de cierre en [TODO.md](../TODO.md).
+La versión 0.3.0 agrega litros almacenados para el cilindro Ø interior 1 m,
+flotador a 70 cm. Compilación y pruebas C/converter OK; converter instalado,
+entidad HA registrada y límites leídos remotamente. Firmware flasheado por
+USB-JTAG; interview y Reconfigure OK, endpoint 18 descubierto y lectura de litros
+del firmware recibida. Calibración física y reporting prolongado pendientes.
 El firmware queda útil como router que busca red y mide ADC/nivel; PCNT se activa
 tras verificar hardware con flow_enabled=1. Los siguientes pasos son ensayos de
 sensores, tráfico prolongado y persistencia. No hace falta reemparejar para

@@ -4,7 +4,7 @@
 void level_sensor_process(level_filter_t *f, const tank_config_t *c,
                           bool adc_ok, float voltage, tank_sample_t *s)
 {
-    s->value[0] = s->value[1] = s->value[4] = s->value[5] = NAN;
+    s->value[0] = s->value[1] = s->value[4] = s->value[5] = s->value[6] = NAN;
     s->level_state = 2;
     if (!adc_ok || !isfinite(voltage)) { f->initialized = false; return; }
     const float *v = c->value;
@@ -25,6 +25,11 @@ void level_sensor_process(level_filter_t *f, const tank_config_t *c,
                     (height - f->filtered_m) : height;
     f->initialized = true;
     s->value[0] = f->filtered_m;
+    /* Vertical cylinder, internal diameter 1 m, sensor at the bottom.
+     * The float valve's operating limit affects percentage, not geometry. */
+    const float water_height = fminf(TANK_PHYSICAL_HEIGHT_M, fmaxf(0, f->filtered_m));
+    s->value[6] = 3.14159265358979323846f * TANK_DIAMETER_M * TANK_DIAMETER_M *
+                  0.25f * water_height * 1000.0f;
     s->value[1] = fminf(100, fmaxf(0, 100 * (f->filtered_m - v[CFG_HEIGHT_MIN]) /
                                       (v[CFG_HEIGHT_MAX] - v[CFG_HEIGHT_MIN])));
     s->level_state = 1;

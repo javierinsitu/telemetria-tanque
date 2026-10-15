@@ -1,5 +1,81 @@
 # Registro de validación — 2026-10-02
 
+## Reemplazo de placa — 2026-10-14
+
+Nuevo IEEE `0xacebe6fffe2c8c5c`, firmware 0.3.0 flasheado por USB-JTAG con
+Verify OK de bootloader, tabla y aplicación. NVS conservada. Emparejamiento,
+nueve reportes 30–600 s y los 14 parámetros restaurados verificados por
+Zigbee; calibración de nivel y contador habilitado conservados tras reset.
+25 entidades de Home Assistant migradas manteniendo entity_id y preferencias;
+historial anterior de nivel consultado correctamente. YF-B10 identificado,
+con calibración pendiente. Nivel under_range al terminar con señal ~0 V y
+fuente de 12 V previamente desconectada; no se validó lectura hidráulica en
+esta placa. Detalles y respaldos en
+[registro de reemplazo](maintenance/2026-10-14-esp32-replacement.md).
+
+## Flasheo 0.3.0 y endpoint 18 — 2026-10-05
+
+- ESP32-C6 presente como USB 303a:1001. Sin ttyACM: kernel activo
+  7.2.6-arch2-1, módulos instalados 7.2.8-arch1-2. Se usó USB-JTAG nativo,
+  OpenOCD Espressif v0.12.0-esp32-20260424 y `board/esp32c6-builtin.cfg`.
+- Bootloader 0x0 y aplicación 0x10000 programados con **Verify OK**;
+  tabla 0x8000 ya coincidía (**Existing flash content matches**). Reset run
+  ejecutado; no se escribió NVS ni se hizo erase-flash.
+- Imagen `/tmp/telemetria-tanque-volume-build/telemetria_tanque.bin`, SHA256
+  `8497c2e5c3b25e613cef5609af1b69ff5ae0900d5776c95bbf2406ca79beda13`.
+  Log `/tmp/telemetria-tanque-volume-flash.log`.
+- Se conservó el emparejamiento. Interview y Configure mediante API MQTT:
+  ambos `status=ok`; `bridge/devices` confirma build **0.3.0**, endpoint 18
+  Analog Input, binding al coordinador y nueve reportes configurados, mínimo
+  30 s, máximo 600 s. Endpoint 18 cambio 1 L.
+- GET confirma rango 5 m, mínimo 0, máximo 0,7 m, estado ok y
+  `stored_volume_l=785.398193359375` procedente del endpoint 18; total del
+  caudalímetro 0 L y caudal deshabilitado. La altura leída de 1,664 m excede
+  el tanque, por lo que el volumen se limita a la capacidad física. No es
+  evidencia de calibración: siguen pendientes montaje/alturas patrón.
+- Verificación de versión y lectura por Zigbee confirma arranque y acceso
+  al endpoint nuevo; no se capturó consola serie ni se ejecutó el ensayo
+  prolongado de reportes espontáneos/heartbeat.
+
+## Litros almacenados — 2026-10-05, firmware 0.3.0
+
+- Geometría confirmada por el usuario: cilindro vertical, diámetro interior
+  1 m, altura física 1 m, flotador a 70 cm, HY-5000 0–5 m en el fondo.
+- Se agregó `stored_volume_l` en endpoint 18, preservando los IDs existentes,
+  total del caudalímetro, blob NVS y credenciales. Defaults de nivel útil 0–0,7 m;
+  rango nominal 5 m. Volumen limitado por altura física 1 m, no por el flotador.
+- Build ESP-IDF 6.0.2 / SDK Zigbee 2.0.3: OK, aplicación 0x84da0 (544160 bytes),
+  libre 48 % de partición de 1 MB. Directorio `/tmp/telemetria-tanque-volume-build`.
+  **No se flasheó 0.3.0**: endpoint 18 y sus reportes en radio quedan pendientes.
+- Tests C ejecutados en host con TCC temporal, sin instalar compilador en el
+  sistema: nivel, 0/35/70/80/100 cm, volumen 274,89/549,78/628,32/785,40 L,
+  límite físico, IIR, invalidación ADC/lazo, configuración e integración: OK.
+- `node --check`, `prepareDefinition` y tests con ZHC 26.115.1: OK. Nueve
+  reportes/24 exposes, ocho reportes en firmware previo, fallback geométrico,
+  endpoint 18, null, fallas y GET compatible. Discovery de litros almacenados
+  usa `measurement`; el total mantiene `total_increasing`.
+- Converter desplegado mediante API MQTT oficial, respuesta `status=ok` y
+  checksum remoto/local idéntico. Backup final en el servidor:
+  `/config/zigbee2mqtt/codex-backup-tanque-20261005-095138`.
+  Reconfigure del nodo actual respondió `ok`, mantiene ocho reportes 30–600 s.
+- Escritura individual y lecturas posteriores confirmaron `height_min_m=0`,
+  `height_max_m=0.699999988079071` (float32 de 0,7), `height_span_m=5`.
+  No se reinició el total ni se habilitó caudal. No se comprobó todavía
+  persistencia de esos parámetros tras cortar alimentación.
+- Discovery MQTT y registro HA confirman entidad habilitada
+  `sensor.esp32_telemetria_tanque_stored_volume_l`, L, clase `measurement`.
+  Lectura real recibida: `level_m=0.906245768070221`,
+  `stored_volume_l=711.7637618290614`, porcentaje 100, estado `ok`.
+  Sólo verifica fórmula/transporte, no exactitud física del sensor.
+- Durante las consultas hubo también `adc_error`, NaN y alturas superiores al
+  tanque; se agregó invalidación de litros ante estado de falla, incluso si un
+  GET trae una altura anterior. Pendientes montaje/calibración con alturas
+  conocidas y ensayo prolongado; no se aceptan esas lecturas como calibradas.
+- Tráfico estimado con 0.3.0: máximo 1080 atributos/h si cambian las nueve
+  magnitudes/estados al mínimo, heartbeat estable 54/h. El fallback instalado
+  conserva 960/48 del firmware previo, pues sólo calcula a partir de mensajes
+  existentes. No se realizó un ensayo RF prolongado de 10–15 min.
+
 ## Firmware 0.2.0 integrado
 
 - ESP-IDF 6.0.2, esp-zigbee-lib 2.0.3 descargado por Component Manager, target

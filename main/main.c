@@ -18,7 +18,7 @@ void app_main(void)
     extern void tank_run_self_tests(void);
     tank_run_self_tests();
 #endif
-    ESP_LOGI("main", "Telemetria hidraulica v0.2.1: ADS1115 + PCNT + Zigbee Router");
+    ESP_LOGI("main", "Telemetria hidraulica v0.3.0: ADS1115 + PCNT + Zigbee Router");
     tank_config_t config;
     double volume;
     esp_err_t err = storage_init(&config, &volume);
@@ -59,7 +59,7 @@ void app_main(void)
             retry_flow_us = now + 60000000;
         }
         tank_sample_t sample = {.level_state = 2, .flow_state = 3};
-        for (unsigned i = 0; i < 6; ++i) sample.value[i] = NAN;
+        for (unsigned i = 0; i < TANK_MEASUREMENT_COUNT; ++i) sample.value[i] = NAN;
         adc_sample_t adc;
         err = adc_ready ? adc_sensor_read(&adc) : ESP_ERR_INVALID_STATE;
         diagnostics_adc_result(err);
@@ -102,9 +102,9 @@ void app_main(void)
                 (sample.flow_state == 3 || sample.flow_state == 4)) {
                 ESP_LOGW("sensors", "Caudal con falla/fuera de rango: estado=%u", sample.flow_state);
             }
-            ESP_LOGI("sensors", "V=%.4f I=%.3f mA h=%.3f m %.1f%% Q=%.3f L/min total=%.6f L estados=%u/%u",
+            ESP_LOGI("sensors", "V=%.4f I=%.3f mA h=%.3f m %.1f%% Q=%.3f L/min total=%.6f L almacenado=%.2f L estados=%u/%u",
                 sample.value[5], sample.value[4], sample.value[0], sample.value[1],
-                sample.value[2], volume, sample.level_state, sample.flow_state);
+                sample.value[2], volume, sample.value[6], sample.level_state, sample.flow_state);
             previous_level_state = sample.level_state; previous_flow_state = sample.flow_state;
             last_log_us = now;
         }

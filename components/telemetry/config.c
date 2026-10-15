@@ -5,7 +5,7 @@
 void tank_config_defaults(tank_config_t *c)
 {
     *c = (tank_config_t){.value = {CONFIG_TANK_ACQUISITION_MS, TANK_REPORT_MIN_S, 150, 4, 20,
-                                  5, 0, 5, 0.2f, 8.1f, -3, 0.5f, 0.3f, 0}};
+                                  5, 0, TANK_OPERATING_HEIGHT_M, 0.2f, 8.1f, -3, 0.5f, 0.3f, 0}};
 }
 
 bool tank_config_valid(const tank_config_t *c)

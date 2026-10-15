@@ -1,6 +1,6 @@
 # TODOs y aceptación pendiente
 
-Estado de referencia: firmware **0.2.1**, actualizado el **2026-10-03**.
+Estado de referencia: firmware **0.3.0**, actualizado el **2026-10-05**.
 El código está integrado y compilado. Las tareas siguientes distinguen ensayos
 pendientes de ampliaciones futuras; no presentan funciones existentes como faltantes.
 Los resultados comprobados están en [VALIDATION.md](docs/VALIDATION.md).
@@ -82,8 +82,13 @@ Los resultados comprobados están en [VALIDATION.md](docs/VALIDATION.md).
 - [ ] Evaluar si la pérdida potencial de 10 min es aceptable; de requerirse menor
   pérdida, diseñar checkpoints por tiempo/volumen o almacenamiento adicional
   midiendo el impacto en desgaste. No guardar por muestra automáticamente.
-- [ ] Definir geometría o tabla altura–volumen configurable para estimar litros
-  almacenados. Mantenerlos separados del volumen de agua que atravesó el caudalímetro.
+- [x] Añadir litros almacenados separados del acumulado: cilindro vertical Ø
+  interior 1 m, altura 1 m y flotador a 70 cm; fórmula y tests implementados.
+- [x] Flashear 0.3.0, descubrir endpoint 18 mediante interview y configurar
+  reporting: nueve bindings 30–600 s, lectura de litros del firmware recibida.
+- [ ] Verificar reportes espontáneos/heartbeat del endpoint 18 en ensayo
+  prolongado, con alturas conocidas. La lectura por GET no verifica todo el ciclo.
+- [ ] Generalizar geometría o tabla altura–volumen configurable para otros tanques.
 - [ ] Evaluar resolución del total float32 para volúmenes grandes; conservar
   precisión doble en NVS y documentar una evolución compatible del protocolo.
 - [ ] Diseñar sensores adicionales, electroválvulas e interlocks de riego como

@@ -24,7 +24,7 @@
 
 ## Identidad y modelo
 
-Fabricante `MILANGAS`, modelo `ESP32C6_HYDRAULIC_1`, build `0.2.1`.
+Fabricante `MILANGAS`, modelo `ESP32C6_HYDRAULIC_1`, build `0.3.0`.
 Perfil HA `0x0104`, dispositivo Simple Sensor (`EZB_ZHA_SIMPLE_SENSOR_DEVICE_ID`),
 Router nativo IEEE 802.15.4, DC permanente. Endpoint 242 puede ser agregado por SDK.
 No se toma un manufacturer code registrado de otro fabricante: cluster privado
@@ -43,6 +43,7 @@ no implica asignación CSA ni producto certificado.
 | 15 | Analog Input 0x000C | 0x0055 | SINGLE 0x39 | 5 voltios | adc_voltage_v |
 | 16 | Multistate Input 0x0012 | 0x0055 | UINT16 0x21 | estados 1–4 | level_state |
 | 17 | Multistate Input 0x0012 | 0x0055 | UINT16 0x21 | estados 1–5 | flow_state |
+| 18 | Analog Input 0x000C | 0x0055 | SINGLE 0x39 | 82 litros | stored_volume_l |
 
 Sin escalas implícitas: float en unidad de tabla. Analog Input también expone
 Description 0x001C (CHAR_STR 0x42), OutOfService 0x0051 (BOOL 0x10, false),
@@ -81,7 +82,7 @@ ajustar primero el que permita conservar min < max durante cada escritura.
 | 4 | current_max_ma | 20 | 15–22 y > mínimo |
 | 5 | height_span_m | 5 | >0–10 |
 | 6 | height_min_m | 0 | ≥0 y < máximo |
-| 7 | height_max_m | 5 | ≤10 y > mínimo |
+| 7 | height_max_m | 0,7 | ≤10 y > mínimo |
 | 8 | level_filter_alpha | 0,2 | >0–1 |
 | 9 | flow_slope | 8,1 | 0,1–100 Hz/(L/min) |
 | 10 | flow_intercept | −3 | −100–100 Hz |
@@ -104,17 +105,23 @@ No hay Report Attributes manual, heartbeat duplicado ni publicación en ISR.
 Por defecto mínimo 30 s, máximo 600 s y delta 0,01 m / 1 % / 0,2 L/min /
 1 L / 0,1 mA / 0,015 V; estados delta 1. Cache actualizada cada 30 s, también
 antes de la unión. SDK decide el reporte según configuración y bindings.
-Hasta 8×120=960 atributos/h si todos cambian al mínimo; con valores estables,
-8×6=48 atributos/h por máximo. Son atributos, no cantidad de tramas ni prueba
+Con endpoint 18 (delta 1 L), hasta 9×120=1080 atributos/h si todos cambian al mínimo;
+con valores estables, 9×6=54 atributos/h por máximo. En firmware previo sin
+endpoint 18 siguen siendo 960/48: el fallback del converter no agrega radio.
+Son atributos, no cantidad de tramas ni prueba
  de emisión efectiva (SDK puede agrupar). El coordinador puede cambiar límites.
 Reintentos de unión con jitter ±20 %, 5 s hasta 5 min, sin timers solapados.
 Credenciales de red restauradas por SDK. Leave inicia búsqueda nuevamente.
 
 ## Futuras ampliaciones
 
-Nivel y acumulado de circulación son independientes. Geometría del depósito
-requiere un módulo posterior (tabla altura–volumen o forma parametrizada) para
-estimar litros almacenados. Electroválvulas/riego requieren endpoints nuevos,
+Nivel, litros almacenados y acumulado de circulación son independientes.
+Desde 0.3.0 la geometría es un cilindro vertical Ø interior 1 m, altura física
+1 m y máximo operativo 0,7 m. Los litros usan la misma altura filtrada del nivel,
+limitada a 0–1 m; fallas y datos obsoletos invalidan también endpoint 18.
+Cambiar forma/dimensiones requerirá parametrización o tabla altura–volumen.
+No cambia el blob NVS ni se reemplazan calibraciones guardadas por defaults.
+Electroválvulas/riego requieren endpoints nuevos,
 interlocks y tratamiento de fallas; no se activan salidas con este firmware.
 
 Migración de configuración: intervalos enteros de 5–29 s guardados por v0.2.0

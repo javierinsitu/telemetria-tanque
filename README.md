@@ -1,9 +1,20 @@
 # Telemetría hidráulica — ESP32-C6 Zero
 
 Firmware modular ESP-IDF puro para ADS1115/HY-5000, YF-B6 y Zigbee Router.
-Sin Arduino ni ESPHome. Versión de protocolo/firmware **0.2.1**.
+Sin Arduino ni ESPHome. Versión de firmware **0.3.0**.
 
-Código integrado, compilado y flasheado en el ESP32-C6 conectado. Se comprobaron
+**Montaje actual (2026-10-14):** ESP32-C6 de reemplazo, IEEE
+`0xacebe6fffe2c8c5c`, flasheado y verificado; las entidades de Home Assistant
+conservan sus nombres. El YF-B6 se reemplazó por un **YF-B10**, con el mismo
+divisor y GPIO4. Caudal habilitado, **calibración hidráulica en curso**:
+el 2026-10-15 se aplicó una escala provisional combinando dos pasadas de
+12 L; falta validación independiente y a otros caudales. La calibración
+práctica de profundidad se restauró y persistió tras reinicio. Ver
+[reemplazo de placa](docs/maintenance/2026-10-14-esp32-replacement.md) y
+[configuración instalada](docs/calibration/installed-config.json).
+
+Código integrado, compilado y flasheado; versión 0.3.0 confirmada en Zigbee2MQTT
+con endpoint 18 y reporting configurado. En versiones anteriores se comprobaron
 arranque, lecturas ADC, pruebas de cálculo y actualización de atributos ZCL.
 El SDK también restauró el estado de red tras un reinicio (`unido=1`). Se instaló
 el conversor en Zigbee2MQTT 2.14.2, se aplicó reporting de 30–600 s y se verificaron
@@ -19,10 +30,11 @@ priorizada de [TODOs](TODO.md).
 | Diagnóstico eléctrico | Voltaje y corriente del lazo, invalidación de lecturas y estado de nivel |
 | Caudal | YF-B6 con PCNT, filtro de pulsos y extensión a 64 bits; pendiente/intercepto configurables |
 | Volumen acumulado | Integración del caudal sin filtro; conservación tras reinicio y reset explícito |
+| Agua almacenada | Cilindro vertical de diámetro interior 1 m y altura física 1 m; nivel útil 70 cm, sensor en el fondo |
 | Muestreo y radio | Muestreo de 1 s, última muestra en RAM; reporting mínimo 30 s por atributo, heartbeat 600 s |
 | Persistencia | NVS versionada, checkpoints de volumen de 10 min y configuración con debounce de 30 s |
 | Zigbee | Router, radio nativa C6, identidad, incorporación con backoff y recuperación de estado de red |
-| Zigbee2MQTT | Conversor externo ESM: ocho entidades, catorce parámetros y acción de reset |
+| Zigbee2MQTT | Conversor externo ESM: nueve entidades, catorce parámetros y acción de reset |
 | Modularidad | Componentes independientes para ADC, nivel, caudal, Zigbee, NVS, configuración y diagnóstico |
 | Verificación | Compilación y flasheo reales, pruebas de cálculo en placa y pruebas de conversor con ZHC |
 
@@ -146,6 +158,30 @@ Para validar/calibrar nivel:
    el rango nominal del HY-5000 para representar una cisterna más baja.
 5. Volver a activar el filtro y probar desconexión/recuperación del ADC y del lazo.
 
+### Tanque instalado y litros almacenados (0.3.0)
+
+Cilindro vertical: diámetro **interior 1 m**, altura física **1 m**, flotador a
+**0,70 m** y sensor apoyado en el fondo. Se conserva `height_span_m=5` para el
+HY-5000 0–5 m; defaults de porcentaje `height_min_m=0`, `height_max_m=0.7`.
+La configuración previa en NVS se conserva: después de actualizar, comprobar
+estos límites por Zigbee2MQTT, no asumir que un nuevo default reemplaza NVS.
+
+`stored_volume_l = π × (1 m / 2)² × nivel_filtrado_m × 1000`
+
+Equivale a **7,854 L/cm**: a 35 cm hay 274,89 L y 50 %; a 70 cm hay
+549,78 L y 100 %. Por encima del flotador el porcentaje queda en 100 %, pero
+los litros siguen aumentando hasta 785,40 L a 1 m. El volumen se limita a
+0–785,40 L usando la altura física, independiente de los límites del porcentaje.
+Se invalida junto al nivel ante falla del ADC/lazo; no se conserva un volumen
+viejo como lectura válida. Geometría fijada en `telemetry.h`, no en NVS.
+
+La nueva magnitud se publica en Analog Input endpoint **18**; los endpoints
+existentes 10–17 y `volume_l` conservan su significado. El converter también
+calcula los litros desde `level_m` si el nodo todavía no tiene endpoint 18,
+permitiendo usar la entidad antes del flasheo. Tras flashear, ejecutar interview
+para descubrir el endpoint nuevo y luego Reconfigure, conservando la red/NVS.
+Ver [instalación y actualización](zigbee2mqtt/README.md).
+
 **Caudal inicialmente deshabilitado (`flow_enabled=0`)**: GPIO4 no se configura
 hasta habilitarlo después de verificar eléctricamente el divisor y tener R2
 conectada. Activar `flow_enabled=1` desde Zigbee2MQTT. El driver usa PCNT, flancos
@@ -206,7 +242,8 @@ volumen y el log. Las credenciales de red no se borran al resetear volumen.
 
 Se mide y persiste el total en doble precisión; Analog Input transmite float32,
 por lo que la resolución del total disminuye para valores muy grandes. No es
-el volumen de agua almacenado: estimarlo requiere geometría futura separada.
+el volumen de agua almacenado: ese valor se publica por separado como
+`stored_volume_l`, calculado desde el nivel y la geometría del tanque.
 
 ## Arquitectura y pruebas
 

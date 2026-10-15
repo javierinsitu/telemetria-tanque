@@ -1,0 +1,6 @@
+{"sensor_current_ma": 11.230000495910645, "adc_voltage_v": 1.6845000982284546, "level_m": 2.2442708015441895, "level_state": "ok", "level_filter_alpha": 1, "depth_cm": 10.0, "captured_at_utc": "2026-10-05T21:53:02.884079+00:00"}
+{"sensor_current_ma": 14.688335418701172, "adc_voltage_v": 2.2032501697540283, "level_m": 3.340104818344116, "level_state": "ok", "level_filter_alpha": 1, "depth_cm": 10.0, "captured_at_utc": "2026-10-05T21:53:45.535065+00:00"}
+{"sensor_current_ma": 19.81500244140625, "adc_voltage_v": 2.97225022315979, "level_m": 4.942188262939453, "level_state": "ok", "level_filter_alpha": 1, "depth_cm": 10.0, "captured_at_utc": "2026-10-05T21:54:23.544217+00:00"}
+{"sensor_current_ma": 9.254167556762695, "adc_voltage_v": 1.3881250619888306, "level_m": 2.195571184158325, "level_state": "ok", "level_filter_alpha": 1, "depth_cm": 10.0, "captured_at_utc": "2026-10-05T22:01:57.341181+00:00"}
+{"sensor_current_ma": 11.623333930969238, "adc_voltage_v": 1.7435001134872437, "level_m": 2.382291793823242, "level_state": "ok", "level_filter_alpha": 1, "depth_cm": 10.0, "captured_at_utc": "2026-10-05T22:02:41.202795+00:00"}
+{"sensor_current_ma": 17.984169006347656, "adc_voltage_v": 2.697625160217285, "level_m": 4.370052814483643, "level_state": "ok", "level_filter_alpha": 1, "depth_cm": 10.0, "captured_at_utc": "2026-10-05T22:03:27.301482+00:00"}

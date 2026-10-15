@@ -3,6 +3,8 @@ import {deviceAddCustomCluster} from 'zigbee-herdsman-converters/lib/modernExten
 
 const MIN_REPORT_SECONDS = 30;
 const HEARTBEAT_SECONDS = 600;
+const TANK_DIAMETER_M = 1;
+const TANK_PHYSICAL_HEIGHT_M = 1;
 const parameters = [
     ['acquisition_ms', 0, 100, 10000, 'ms'],
     ['publication_s', 1, MIN_REPORT_SECONDS, HEARTBEAT_SECONDS, 's'],
@@ -20,9 +22,10 @@ const parameters = [
     ['flow_enabled', 13, 0, 1, undefined],
 ];
 const measurements = [
-    ['level_m', 'm', 0.01], ['level_percent', '%', 1],
-    ['flow_l_min', 'L/min', 0.2], ['volume_l', 'L', 1],
-    ['sensor_current_ma', 'mA', 0.1], ['adc_voltage_v', 'V', 0.015],
+    ['level_m', 'm', 0.01, 10], ['level_percent', '%', 1, 11],
+    ['flow_l_min', 'L/min', 0.2, 12], ['volume_l', 'L', 1, 13],
+    ['sensor_current_ma', 'mA', 0.1, 14], ['adc_voltage_v', 'V', 0.015, 15],
+    ['stored_volume_l', 'L', 1, 18],
 ];
 const levelStates = ['ok', 'adc_error', 'under_range', 'over_range'];
 const flowStates = ['no_flow', 'flowing', 'pcnt_error', 'out_of_range', 'disabled'];
@@ -37,12 +40,22 @@ const cluster = {
 };
 const analog = {
     cluster: 'genAnalogInput', type: ['attributeReport', 'readResponse'],
-    convert: (model, msg) => {
-        const index = msg.endpoint.ID - 10;
-        if (index < 0 || index >= measurements.length) return;
+    convert: (model, msg, publish, options, meta) => {
+        const index = measurements.findIndex(([, , , endpoint]) => endpoint === msg.endpoint.ID);
+        if (index < 0) return;
         if (!('presentValue' in msg.data)) return;
         const value = msg.data.presentValue;
-        return {[measurements[index][0]]: Number.isFinite(value) ? value : null};
+        const result = {[measurements[index][0]]: Number.isFinite(value) ? value : null};
+        const levelFault = (meta?.state?.level_state && meta.state.level_state !== 'ok') ||
+            (msg.data.statusFlags !== undefined && (msg.data.statusFlags & 2) !== 0);
+        if (msg.endpoint.ID === 18 && levelFault) result.stored_volume_l = null;
+        // Keep stored volume available on existing firmware until endpoint 18
+        // is discovered after flashing. Same geometry and invalidation as C.
+        if (msg.endpoint.ID === 10 && !msg.device?.getEndpoint(18)) {
+            result.stored_volume_l = Number.isFinite(value) && !levelFault ? Math.PI * TANK_DIAMETER_M ** 2 / 4 *
+                Math.min(TANK_PHYSICAL_HEIGHT_M, Math.max(0, value)) * 1000 : null;
+        }
+        return result;
     },
 };
 const states = {
@@ -51,7 +64,10 @@ const states = {
         if (!('presentValue' in msg.data)) return;
         const list = msg.endpoint.ID === 16 ? levelStates : msg.endpoint.ID === 17 ? flowStates : undefined;
         if (!list) return;
-        return {[msg.endpoint.ID === 16 ? 'level_state' : 'flow_state']: list[msg.data.presentValue - 1] ?? 'unknown'};
+        const state = list[msg.data.presentValue - 1] ?? 'unknown';
+        const result = {[msg.endpoint.ID === 16 ? 'level_state' : 'flow_state']: state};
+        if (msg.endpoint.ID === 16 && state !== 'ok') result.stored_volume_l = null;
+        return result;
     },
 };
 const configFrom = {
@@ -88,7 +104,10 @@ const measurementsTo = {
     key: [...measurements.map(([name]) => name), 'level_state', 'flow_state'],
     convertGet: async (entity, key, meta) => {
         const index = measurements.findIndex(([name]) => name === key);
-        await meta.device.getEndpoint(index >= 0 ? index + 10 : key === 'level_state' ? 16 : 17)
+        const id = index >= 0 ? measurements[index][3] : key === 'level_state' ? 16 : 17;
+        const endpoint = meta.device.getEndpoint(id) ?? (key === 'stored_volume_l' ? meta.device.getEndpoint(10) : undefined);
+        if (!endpoint) throw new Error(`Endpoint no disponible: ${key}`);
+        await endpoint
             .read(index >= 0 ? 'genAnalogInput' : 'genMultistateInput', ['presentValue']);
     },
 };
@@ -96,12 +115,14 @@ const measurementsTo = {
 export default {
     fingerprint: [{modelID: 'ESP32C6_HYDRAULIC_1', manufacturerName: 'MILANGAS'}],
     model: 'ESP32C6_HYDRAULIC_1', vendor: 'MILANGAS',
-    description: 'Router ESP32-C6: nivel HY-5000/ADS1115 y caudal YF-B6',
+    description: 'Router ESP32-C6: nivel y litros almacenados (cilindro Ø1 m), caudal YF-B10 (calibración pendiente)',
     meta: {
         // Z2M 2.14.x does not accept state_class in expose.homeassistant.
         // Apply statistical semantics to the generated MQTT discovery payload.
         overrideHaDiscoveryPayload: (payload) => {
-            const measurement = measurements.find(([name]) =>
+            // stored_volume_l also ends in volume_l: match the appended
+            // stored-volume property first so it remains a measurement.
+            const measurement = measurements.findLast(([name]) =>
                 payload.unique_id?.endsWith(`_${name}_zigbee2mqtt`));
             if (measurement) payload.state_class = measurement[0] === 'volume_l' ? 'total_increasing' : 'measurement';
         },
@@ -110,7 +131,8 @@ export default {
     fromZigbee: [analog, states, configFrom], toZigbee: [configTo, measurementsTo],
     exposes: [
         ...measurements.map(([name, unit]) => e.numeric(name, ea.STATE_GET).withUnit(unit)
-            .withDescription(name.replaceAll('_', ' '))),
+            .withDescription(name === 'stored_volume_l' ? 'Agua almacenada: tanque cilíndrico vertical Ø interior 1 m, altura 1 m' :
+                name === 'volume_l' ? 'Volumen acumulado que pasó por el caudalímetro' : name.replaceAll('_', ' '))),
         e.enum('level_state', ea.STATE_GET, [...levelStates, 'unknown']).withCategory('diagnostic'),
         e.enum('flow_state', ea.STATE_GET, [...flowStates, 'unknown']).withCategory('diagnostic'),
         ...parameters.map(([name, id, min, max, unit]) => {
@@ -127,7 +149,8 @@ export default {
         // Definition.configure runs before extend.configure in ZHC 26.x.
         device.addCustomCluster('hydraulicConfig', cluster);
         for (let i = 0; i < measurements.length; ++i) {
-            const ep = device.getEndpoint(i + 10);
+            const ep = device.getEndpoint(measurements[i][3]);
+            if (!ep && measurements[i][0] === 'stored_volume_l') continue;
             await ep.bind('genAnalogInput', coordinatorEndpoint);
             await ep.configureReporting('genAnalogInput', [{attribute: 'presentValue',
                 minimumReportInterval: MIN_REPORT_SECONDS, maximumReportInterval: HEARTBEAT_SECONDS,

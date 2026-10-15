@@ -1,0 +1,25 @@
+{
+  "recorded_on": "2026-10-15",
+  "device_ieee": "0xacebe6fffe2c8c5c",
+  "friendly_name": "Esp32-telemetria-tanque",
+  "firmware": "0.3.0",
+  "level_calibration": "Practical fit at approximately 0, 10, 40 and 70 cm; see 2026-10-13-submerged.md",
+  "flow_sensor": "YF-B10",
+  "flow_calibration_status": "not accepted: two 30 L tests indicated 26.116333 L and 17.212540 L at unchanged coefficients; pulse signal and slope/intercept diagnosis required",
+  "configuration": {
+    "acquisition_ms": 1000,
+    "publication_s": 30,
+    "shunt_ohm": 150,
+    "current_min_ma": 3.97294,
+    "current_max_ma": 19.30835,
+    "height_span_m": 5,
+    "height_min_m": 0,
+    "height_max_m": 0.7,
+    "level_filter_alpha": 0.2,
+    "flow_slope": 3.7249998,
+    "flow_intercept": -3,
+    "flow_threshold": 0.5,
+    "flow_filter_alpha": 0.3,
+    "flow_enabled": 1
+  }
+}
